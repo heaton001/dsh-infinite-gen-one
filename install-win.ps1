@@ -80,7 +80,16 @@ if ($null -ne $pnpmCmd) {
   if (Test-Path $nm) { Remove-Item $nm -Recurse -Force }
   Push-Location $profDir
   try {
-    & $pnpmCmd.Exe @($pnpmCmd.Args) install
+    # DSH 插件的 @deepseek-ai/dsh-* 是宿主提供的 peer，pnpm 9 默认会去 registry 找
+    # 一个满足范围的版本，而它们只有预发布版（latest 仍指向 0.0.1-rc.1），必然
+    # 报 ERR_PNPM_NO_MATCHING_VERSION。关掉 peer 自动安装即可，运行时由宿主解析。
+    $installArgs = @($pnpmCmd.Args) + @('install', '--config.auto-install-peers=false')
+    & $pnpmCmd.Exe @installArgs
+    if ($LASTEXITCODE -ne 0) {
+      Warn "pnpm install 未通过，关闭严格 peer 校验后重试一次"
+      $installArgs = @($pnpmCmd.Args) + @('install', '--config.auto-install-peers=false', '--config.strict-peer-dependencies=false')
+      & $pnpmCmd.Exe @installArgs
+    }
     if ($LASTEXITCODE -ne 0) { Err "pnpm install failed: $LASTEXITCODE"; exit 1 }
   } finally { Pop-Location }
   Ok "dependencies installed"

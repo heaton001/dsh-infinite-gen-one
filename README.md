@@ -278,3 +278,31 @@ BEGIN.
 ## 9. 许可
 
 MIT，见 `LICENSE`。上游版权归 0x5477；本仓库改写部分同样以 MIT 发布，归属说明见 `NOTICE.md`。
+
+### ERR_PNPM_NO_MATCHING_VERSION `@deepseek-ai/dsh-llm`
+
+Windows 上执行 `install-win.ps1` 到最后一步报：
+
+```
+ERR_PNPM_NO_MATCHING_VERSION  No matching version found for
+@deepseek-ai/dsh-llm@>=0.1.5 <0.2.0 || >=0.2.0 <0.3.0
+The latest release of @deepseek-ai/dsh-llm is "0.0.1-rc.1".
+```
+
+原因：`@deepseek-ai/dsh-*` 是**宿主提供的 peer**，不是插件要装的依赖。pnpm 9 默认会自动安装缺失的 peer，去 registry 找一个满足范围的版本；而 `@deepseek-ai/dsh-llm` 的 `latest` 标签还停在 `0.0.1-rc.1`，0.2.x 全部是预发布版（`next` = 0.2.2-rc.1），预发布版默认不参与区间匹配 → 必然找不到。
+
+修法：关掉 peer 自动安装，运行时由 DSH 自己解析这些包。
+
+```powershell
+cd "$env:USERPROFILE\.dsh\profiles\desktop"
+npx --yes pnpm@9 install --config.auto-install-peers=false
+```
+
+仍然失败就再加上严格 peer 关闭：
+
+```powershell
+npx --yes pnpm@9 install --config.auto-install-peers=false --config.strict-peer-dependencies=false
+```
+
+0.2.5 起两个安装脚本已内置这两次尝试，不需要手动加参数。
+

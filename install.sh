@@ -140,9 +140,14 @@ fi
 
 (
   cd "$PROFILE_DIR"
-  if ! pnpm install; then
-    err "pnpm install 失败，请手动执行：cd $PROFILE_DIR && pnpm install"
-    exit 1
+  # @deepseek-ai/dsh-* 是宿主提供的 peer；pnpm 默认会去 registry 找满足范围的版本，
+  # 但它们只有预发布版（latest 指向 0.0.1-rc.1），会报 ERR_PNPM_NO_MATCHING_VERSION。
+  if ! pnpm install --config.auto-install-peers=false; then
+    warn "pnpm install 未通过，关闭严格 peer 校验后重试一次"
+    if ! pnpm install --config.auto-install-peers=false --config.strict-peer-dependencies=false; then
+      err "pnpm install 失败，请手动执行：cd $PROFILE_DIR && pnpm install --config.auto-install-peers=false"
+      exit 1
+    fi
   fi
 )
 ok "依赖安装完成"
