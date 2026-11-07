@@ -93,6 +93,17 @@ if ($null -ne $pnpmCmd) {
     # DSH 插件的 @deepseek-ai/dsh-* 是宿主提供的 peer，pnpm 9 默认会去 registry 找
     # 一个满足范围的版本，而它们只有预发布版（latest 仍指向 0.0.1-rc.1），必然
     # 报 ERR_PNPM_NO_MATCHING_VERSION。关掉 peer 自动安装即可，运行时由宿主解析。
+    # 命令行开关在部分 pnpm 版本上会被 profile 里的 .npmrc 覆盖，这里直接落盘，
+    # 保证 peer 不会被自动安装（@deepseek-ai/* 由宿主提供）。
+    $npmrc = Join-Path $profDir '.npmrc'
+    $want = @('auto-install-peers=false', 'strict-peer-dependencies=false')
+    $cur = if (Test-Path $npmrc) { Get-Content $npmrc } else { @() }
+    foreach ($line in $want) {
+      $key = ($line -split '=')[0]
+      if (-not ($cur | Where-Object { $_ -like "$key=*" })) {
+        Add-Content -Path $npmrc -Value $line -Encoding ascii
+      }
+    }
     $installArgs = @($pnpmCmd.Args) + @('install', '--config.auto-install-peers=false')
     & $pnpmCmd.Exe @installArgs
     if ($LASTEXITCODE -ne 0) {
