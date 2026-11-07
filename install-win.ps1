@@ -36,8 +36,18 @@ function Resolve-Pnpm {
   }
   $corepack = Get-Command corepack -ErrorAction SilentlyContinue
   if ($corepack) { return @{ Exe = $corepack.Source; Args = @('pnpm') } }
+  # npx 在两套安装里同时有 npx.cmd 和 npx.ps1；PowerShell 会挑 .ps1，而它对
+  # Restricted 执行策略是硬拒绝（无法加载文件 npx.ps1）。优先用 .cmd，绕开策略。
+  $npxCmd = Join-Path $env:ProgramFiles 'nodejs\npx.cmd'
+  if (Test-Path $npxCmd) { return @{ Exe = $npxCmd; Args = @('--yes', 'pnpm@9') } }
   $npx = Get-Command npx -ErrorAction SilentlyContinue
-  if ($npx) { return @{ Exe = $npx.Source; Args = @('--yes', 'pnpm@9') } }
+  if ($npx) {
+    $src = $npx.Source
+    if ($src -like '*.ps1' -and (Test-Path ([IO.Path]::ChangeExtension($src, '.cmd')))) {
+      $src = [IO.Path]::ChangeExtension($src, '.cmd')
+    }
+    return @{ Exe = $src; Args = @('--yes', 'pnpm@9') }
+  }
   return $null
 }
 

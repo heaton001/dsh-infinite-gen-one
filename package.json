@@ -1,6 +1,6 @@
 {
   "name": "dsh-infinite-gen-2",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "DeepSeek Harness 破甲插件「无限二代」：v5 稳定化破甲提示词（含拒绝对抗增强），客户端在对话框上方显示「破甲已开启」状态条。 (local-analysis categories enabled)",
   "type": "module",
   "main": "index.js",
